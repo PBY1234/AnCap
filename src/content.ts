@@ -216,3 +216,124 @@ export const strategyEpochs = [
     description: 'The state shell is gone; only trust governance and voluntary exchange remain.',
   },
 ] as const;
+
+/* ═══ INTELLIGENT AGENTS ═══════════════════════════════ */
+
+export interface AgentTemplate {
+  id: string;
+  name: string;
+  role: string;
+  icon: string;
+  bio: string;
+  minTurn: number;
+  innovationIds: string[];
+}
+
+export const agentTemplates: AgentTemplate[] = [
+  {
+    id: 'elena-vega',
+    name: 'Elena Vega',
+    role: 'Serial Entrepreneur',
+    icon: '👩‍💼',
+    bio: 'Former Mercadona logistics director. Sees deregulation gaps as startup opportunities.',
+    minTurn: 1,
+    innovationIds: ['private-logistics', 'insurance-markets'],
+  },
+  {
+    id: 'marcos-pellegrini',
+    name: 'Dr. Marcos Pellegrini',
+    role: 'Monetary Economist',
+    icon: '🧑‍🔬',
+    bio: 'Juan de Mariana Institute fellow. Designs competing currency frameworks.',
+    minTurn: 2,
+    innovationIds: ['private-currency', 'clearing-house'],
+  },
+  {
+    id: 'lucia-ramos',
+    name: 'Lucía Ramos',
+    role: 'Community Builder',
+    icon: '💪',
+    bio: 'Mondragon-trained cooperative leader. Converts bureaucrats into stakeholders.',
+    minTurn: 1,
+    innovationIds: ['mutual-aid', 'health-coops'],
+  },
+  {
+    id: 'satoshi-serrano',
+    name: '"Satoshi" Serrano',
+    role: 'Crypto Architect',
+    icon: '🧑‍💻',
+    bio: "Anonymous dev. Built Spain's first DAOs for water and power distribution.",
+    minTurn: 3,
+    innovationIds: ['title-blockchain', 'dao-governance'],
+  },
+  {
+    id: 'viktor-holm',
+    name: 'Viktor Holm',
+    role: 'Nordic VC',
+    icon: '🤵',
+    bio: 'Runs €2B Stockholm fund. Needs title clarity and court speed to deploy.',
+    minTurn: 2,
+    innovationIds: ['fdi-corridor', 'special-economic-zone'],
+  },
+  {
+    id: 'carmen-torres',
+    name: 'Carmen Torres',
+    role: 'Legal Innovator',
+    icon: '👩‍⚖️',
+    bio: 'Ex-Supreme Court magistrate. Designs dispute resolution protocols.',
+    minTurn: 3,
+    innovationIds: ['dispute-protocol', 'contract-standard'],
+  },
+  {
+    id: 'alejandro-ruiz',
+    name: 'Alejandro Ruiz',
+    role: 'Security Entrepreneur',
+    icon: '🛡️',
+    bio: 'Former Guardia Civil captain. Building subscription security services.',
+    minTurn: 2,
+    innovationIds: ['voluntary-security', 'private-fire'],
+  },
+  {
+    id: 'ines-moreno',
+    name: 'Inés Moreno',
+    role: 'Agricultural Pioneer',
+    icon: '🌾',
+    bio: 'Runs vertical farms in Almería. Wants to replace EU subsidies with markets.',
+    minTurn: 1,
+    innovationIds: ['agri-coops', 'food-markets'],
+  },
+];
+
+/* ═══ MARKET INNOVATIONS ══════════════════════════════ */
+
+export interface InnovationTemplate {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: 'finance' | 'governance' | 'infrastructure' | 'social' | 'security' | 'tech';
+  costBillions: number;
+}
+
+export const innovationTemplates: InnovationTemplate[] = [
+  { id: 'private-logistics', title: 'Private Logistics Network', description: 'Entrepreneur-operated delivery mesh replacing state postal monopoly.', icon: '📦', category: 'infrastructure', costBillions: 2 },
+  { id: 'insurance-markets', title: 'Competitive Insurance', description: 'Multi-provider coverage pools replacing social security mandates.', icon: '🛟', category: 'finance', costBillions: 4 },
+  { id: 'private-currency', title: 'Gold-Digital Currency', description: 'Competing private money backed by allocated gold reserves.', icon: '🪙', category: 'finance', costBillions: 6 },
+  { id: 'clearing-house', title: 'Private Clearing House', description: 'Non-state settlement and payment infrastructure.', icon: '🏦', category: 'finance', costBillions: 5 },
+  { id: 'mutual-aid', title: 'Mutual Aid Networks', description: 'Voluntary community insurance for health and hardship.', icon: '🤝', category: 'social', costBillions: 1 },
+  { id: 'health-coops', title: 'Health Cooperatives', description: 'Member-owned clinics replacing state health mandates.', icon: '🏥', category: 'social', costBillions: 4 },
+  { id: 'title-blockchain', title: 'Land Title Blockchain', description: 'Immutable digital property registry eliminating title fraud.', icon: '⛓️', category: 'tech', costBillions: 4 },
+  { id: 'dao-governance', title: 'DAO Municipal Gov', description: 'Smart-contract town governance with transparent treasury.', icon: '🏛️', category: 'governance', costBillions: 3 },
+  { id: 'fdi-corridor', title: 'FDI Express Corridor', description: 'Fast-track foreign investment with guaranteed arbitration.', icon: '🌐', category: 'finance', costBillions: 2 },
+  { id: 'special-economic-zone', title: 'Special Economic Zone', description: 'Zero-regulation production zone with own port access.', icon: '🏭', category: 'governance', costBillions: 5 },
+  { id: 'dispute-protocol', title: 'Dispute Resolution Protocol', description: 'Multi-tier arbitration cutting resolution time 80%.', icon: '📋', category: 'governance', costBillions: 2 },
+  { id: 'contract-standard', title: 'Universal Contract Std', description: 'Machine-readable contracts for cross-border enforcement.', icon: '📄', category: 'tech', costBillions: 3 },
+  { id: 'voluntary-security', title: 'Security Cooperatives', description: 'Subscription neighborhood security replacing police monopoly.', icon: '🔒', category: 'security', costBillions: 3 },
+  { id: 'private-fire', title: 'Private Fire & Rescue', description: 'Community-funded fire service with rapid response.', icon: '🚒', category: 'security', costBillions: 2 },
+  { id: 'agri-coops', title: 'Agricultural Cooperatives', description: 'Farmer-owned supply chains bypassing state distribution.', icon: '🌱', category: 'infrastructure', costBillions: 3 },
+  { id: 'food-markets', title: 'Direct Farm Markets', description: 'Deregulated farm-to-city trading without middlemen.', icon: '🥬', category: 'infrastructure', costBillions: 1 },
+  { id: 'energy-grid', title: 'Community Energy Grid', description: 'Decentralized solar+storage owned by neighborhoods.', icon: '⚡', category: 'infrastructure', costBillions: 5 },
+  { id: 'education-market', title: 'Education Marketplace', description: 'Voucher-funded private academies competing on outcomes.', icon: '📚', category: 'social', costBillions: 3 },
+];
+
+export const seasonNames = ['Spring', 'Summer', 'Autumn', 'Winter'] as const;
