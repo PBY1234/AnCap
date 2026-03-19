@@ -3,6 +3,9 @@ import {
   ministryTemplates,
   agentTemplates,
   innovationTemplates,
+  temptationDeck,
+  headlines,
+  moodNarratives,
   type AgentTemplate,
   type InnovationTemplate,
 } from './content';
@@ -184,6 +187,17 @@ export interface SimulationState {
   seasonIndex: number;
   turnsWithoutCrisis: number;
   lossReason: string | null;
+  // Narrative / progression systems
+  prologueDone: boolean;
+  prologueStep: number;
+  pressureMeter: number;
+  interventionCount: number;
+  publicMoodNarrative: string;
+  currentTemptation: TemptationCard | null;
+  temptationsSeen: string[];
+  unlockedActionTier: number;
+  headlineText: string;
+  pressureWarningActive: boolean;
 }
 
 export type SimulationAction =
@@ -195,7 +209,32 @@ export type SimulationAction =
   | { type: 'charter-city'; regionId: string }
   | { type: 'expand-arbitration' }
   | { type: 'issue-gold-bond' }
-  | { type: 'adopt-innovation'; innovationId: string };
+  | { type: 'adopt-innovation'; innovationId: string }
+  | { type: 'temptation-choice'; temptationId: string; accept: boolean }
+  | { type: 'dismiss-temptation' }
+  | { type: 'advance-prologue' };
+
+export interface TemptationCard {
+  id: string;
+  title: string;
+  source: string;           // who is offering
+  sourceIcon: string;
+  flavour: string;          // narrative hook
+  offer: string;            // what you get
+  poison: string;           // what it actually costs
+  acceptLabel: string;
+  refuseLabel: string;
+  minPhase: string;
+  requiredStat?: { key: string; below?: number; above?: number };
+}
+
+export interface PrologueCard {
+  id: string;
+  title: string;
+  body: string;
+  icon: string;
+  stat?: string;
+}
 
 export interface SimulationBreakdown {
   goldValue: number;
@@ -905,6 +944,12 @@ const advanceTurn = (state: SimulationState): SimulationState => {
   // Agent spawning and departures
   next = trySpawnAgents(next);
   next = checkAgentDepartures(next);
+
+  // Temptation spawning
+  next = trySpawnTemptation(next);
+
+  // Pressure meter and mood
+  next = updatePressureAndMood(next);
 
   return refreshDerived(next);
 };
@@ -1676,6 +1721,17 @@ export const createInitialState = (): SimulationState =>
     seasonIndex: 0,
     turnsWithoutCrisis: 0,
     lossReason: null,
+    // Narrative systems
+    prologueDone: false,
+    prologueStep: 0,
+    pressureMeter: 0,
+    interventionCount: 0,
+    publicMoodNarrative: moodNarratives['high_cohesion_early'],
+    currentTemptation: null,
+    temptationsSeen: [],
+    unlockedActionTier: 1,
+    headlineText: headlines['Trustee'][0],
+    pressureWarningActive: false,
   });
 
 /* ═══ ACHIEVEMENT CHECKS ═══════════════════════════════ */
@@ -1754,6 +1810,139 @@ const checkAchievements = (state: SimulationState): SimulationState => {
   return s;
 };
 
+
+/* ═══ TEMPTATION SYSTEM ════════════════════════════════ */
+
+const phaseOrder: Record<Phase, number> = { Trustee: 0, Liquidator: 1, Architect: 2, Sovereign: 3 };
+
+const trySpawnTemptation = (state: SimulationState): SimulationState => {
+  if (state.currentTemptation) return state;
+  if (!state.prologueDone) return state;
+  const roll = pseudoRandom(state.turns, 5381);
+  if (roll > 0.28) return state; // 28% chance per turn
+
+  const eligible = temptationDeck.filter(t => {
+    if (state.temptationsSeen.includes(t.id)) return false;
+    if (phaseOrder[t.minPhase as Phase] > phaseOrder[state.phase]) return false;
+    if (t.requiredStat) {
+      const val = (state as unknown as Record<string, number>)[t.requiredStat.key];
+      if (t.requiredStat.below !== undefined && val >= t.requiredStat.below) return false;
+      if (t.requiredStat.above !== undefined && val <= t.requiredStat.above) return false;
+    }
+    return true;
+  });
+
+  if (eligible.length === 0) return state;
+  const idx = Math.floor(pseudoRandom(state.turns, 2741) * eligible.length);
+  const temptation = eligible[idx];
+  return withHistory(
+    { ...state, currentTemptation: temptation, temptationsSeen: [...state.temptationsSeen, temptation.id] },
+    `⚠️ Temptation incoming: ${temptation.source} is making an offer.`
+  );
+};
+
+const applyTemptationChoice = (state: SimulationState, temptationId: string, accept: boolean): SimulationState => {
+  const t = state.currentTemptation;
+  if (!t || t.id !== temptationId) return state;
+
+  let s: SimulationState = { ...state, currentTemptation: null };
+
+  if (!accept) {
+    // Refuse — virtue points, minor positive effects
+    s = {
+      ...s,
+      libertyIndex: clamp(s.libertyIndex + 3, 0, 100),
+      internationalReputation: clamp(s.internationalReputation + 4, 0, 100),
+      doctrine: { ...s.doctrine, rothbard: clamp(s.doctrine.rothbard + 6, 0, 100) },
+      pressureMeter: clamp(s.pressureMeter - 5, 0, 100),
+      lastAction: `Temptation refused: ${t.title}. The principled path held.`,
+      decayLog: [
+        `The ${t.source} offer was declined. This will be remembered.`,
+        'Refusing the shortcut is the hardest move in a transition.',
+        'International libertarian networks took notice.',
+      ],
+    };
+    s = withHistory(s, `Temptation refused: ${t.title}.`);
+  } else {
+    // Accept — apply the poison
+    s = { ...s, interventionCount: s.interventionCount + 1 };
+
+    if (t.id === 'tempt-eu-bridge') {
+      s = { ...s, annuityPool: s.annuityPool + 80 * BILLION, euThreat: clamp(s.euThreat - 20, 0, 100), cohesion: clamp(s.cohesion + 8, 0, 100), libertyIndex: clamp(s.libertyIndex - 12, 0, 100), lastAction: 'EU bridge loan accepted. Privatisation paused.', decayLog: ['Brussels wired the cash. The hook is in.','The transition paused because someone blinked first.','Short-term relief. Long-term dependency.'] };
+    } else if (t.id === 'tempt-price-controls') {
+      s = { ...s, cohesion: clamp(s.cohesion + 12, 0, 100), inflation: clamp(s.inflation - 4, 0, 50), foodSecurity: clamp(s.foodSecurity - 15, 0, 100), blackMarketSize: clamp(s.blackMarketSize + 25, 0, 100), gdpGrowth: clamp(s.gdpGrowth - 1.2, -8, 16), libertyIndex: clamp(s.libertyIndex - 10, 0, 100), lastAction: 'Price controls issued. Markets immediately distorted.', decayLog: ['Prices stopped at decree; supply did not get the memo.','Black markets expanded at the speed of the overnight queue.','Short-term calm. Long-term scarcity.'] };
+    } else if (t.id === 'tempt-imf-conditionality') {
+      s = { ...s, annuityPool: s.annuityPool + 50 * BILLION, euThreat: clamp(s.euThreat - 10, 0, 100), internationalReputation: clamp(s.internationalReputation + 10, 0, 100), taxRate: clamp(s.taxRate, 20, 40), libertyIndex: clamp(s.libertyIndex - 8, 0, 100), lastAction: 'IMF standby accepted. Tax floor locked at 20%.', decayLog: ['Washington wired the SDRs. The conditionality clause is legible.','Tax rate cannot drop below 20% while the IMF watches.','Liquidity in exchange for sovereignty.'] };
+    } else if (t.id === 'tempt-renationalise') {
+      s = { ...s, cohesion: clamp(s.cohesion + 10, 0, 100), energyStability: clamp(s.energyStability + 8, 0, 100), militaryLoyalty: clamp(s.militaryLoyalty + 5, 0, 100), libertyIndex: clamp(s.libertyIndex - 12, 0, 100), assetMultiplier: Math.max(0.1, s.assetMultiplier - 0.08), euThreat: clamp(s.euThreat + 10, 0, 100), lastAction: 'Energy grid re-nationalised. Market order compromised.', decayLog: ['The grid returned to state hands. Workers cheered.','Investors updated their risk models. Asset multiples fell.','The transition contradicted itself. History noticed.'] };
+    } else if (t.id === 'tempt-wealth-tax') {
+      s = { ...s, annuityPool: s.annuityPool + 35 * BILLION, cohesion: clamp(s.cohesion + 6, 0, 100), internationalReputation: clamp(s.internationalReputation - 15, 0, 100), assetMultiplier: Math.max(0.1, s.assetMultiplier - 0.06), libertyIndex: clamp(s.libertyIndex - 8, 0, 100), emigrationRate: clamp(s.emigrationRate + 3, 0, 20), lastAction: 'Wealth tax levied. Capital began moving overnight.', decayLog: ['The tax raised €35B and €120B in capital flight started packing.','Entrepreneurs remembered Portugal exists.','The trust got fatter while the economy got thinner.'] };
+    } else if (t.id === 'tempt-media-blackout') {
+      s = { ...s, cohesion: clamp(s.cohesion + 8, 0, 100), euThreat: clamp(s.euThreat - 6, 0, 100), internationalReputation: clamp(s.internationalReputation - 20, 0, 100), libertyIndex: clamp(s.libertyIndex - 10, 0, 100), corruption: clamp(s.corruption + 8, 0, 100), lastAction: 'Press restrictions issued. International reaction immediate.', decayLog: ['The broadcast decree silenced dissent and international credibility.','Reporters Without Borders downgraded Spain eight places by Tuesday.','The story you suppress becomes the story.'] };
+    } else if (t.id === 'tempt-army-order') {
+      s = { ...s, publicSafety: clamp(s.publicSafety + 15, 0, 100), cohesion: clamp(s.cohesion + 10, 0, 100), blackMarketSize: clamp(s.blackMarketSize - 20, 0, 100), libertyIndex: clamp(s.libertyIndex - 20, 0, 100), internationalReputation: clamp(s.internationalReputation - 15, 0, 100), militaryLoyalty: clamp(s.militaryLoyalty + 15, 0, 100), euThreat: clamp(s.euThreat + 15, 0, 100), lastAction: 'Military administration granted. Six provinces under army control.', decayLog: ['Order arrived in armoured vehicles. The market order retreated.','Brussels called it a coup by consent.','The anarchy was replaced by something worse: uniformed bureaucracy.'] };
+    } else if (t.id === 'tempt-sovereign-fund') {
+      s = { ...s, annuityPool: s.annuityPool + 80 * BILLION, pensionCoverage: clamp(s.pensionCoverage + 40, 0, 180), euThreat: clamp(s.euThreat - 10, 0, 100), libertyIndex: clamp(s.libertyIndex - 8, 0, 100), assetMultiplier: Math.max(0.1, s.assetMultiplier - 0.04), lastAction: 'Sovereign wealth fund created. Goldman/BlackRock managing assets.', decayLog: ['€200B under management. Fifteen-year lock-in signed.','The pensions are safe. The assets are not yours for a decade.','Wall Street solved the pension problem. The price was control.'] };
+    } else if (t.id === 'tempt-bitcoin-mandate') {
+      s = { ...s, privateCurrencyAdoption: clamp(s.privateCurrencyAdoption + 30, 0, 100), inflation: clamp(s.inflation - 6, 0, 50), euThreat: clamp(s.euThreat + 18, 0, 100), cohesion: clamp(s.cohesion - 8, 0, 100), internationalReputation: clamp(s.internationalReputation + 10, 0, 100), lastAction: 'Bitcoin legal tender by decree. EU furious.', decayLog: ['Bitcoin is legal tender. This is either genius or catastrophic.','Brussels invoked Article 7.','Volatility spiked. Half the country loves it. Half panics.'] };
+    }
+
+    s = withHistory(s, `Temptation accepted: ${t.title}. Consequences incoming.`);
+    // Update mood
+    s = { ...s, publicMoodNarrative: moodNarratives['temptation_accepted'] };
+  }
+
+  return advanceTurn(s);
+};
+
+/* ═══ PRESSURE METER + MOOD UPDATE ════════════════════ */
+
+const updatePressureAndMood = (state: SimulationState): SimulationState => {
+  // Pressure builds if player is passive (no big reforms)
+  const reformed = state.ministriesClosed + state.lawBook.filter(l => l.shredded).length + state.charterCities + state.innovationsAdopted.length;
+  const expectedReform = state.turns * 0.8;
+  const lagging = reformed < expectedReform;
+
+  const pressureDelta = lagging ? 6 : -3;
+  const newPressure = clamp(state.pressureMeter + pressureDelta + (state.euThreat > 70 ? 3 : 0) + (state.cohesion < 35 ? 4 : 0), 0, 100);
+
+  // Determine mood narrative
+  let mood = moodNarratives['great'];
+  if (state.inflation > 15) mood = moodNarratives['inflation_bad'];
+  else if (state.foodSecurity < 45) mood = moodNarratives['low_food'];
+  else if (state.publicSafety < 35) mood = moodNarratives['low_safety'];
+  else if (state.cohesion < 40) mood = moodNarratives['low_cohesion_early'];
+  else if (state.gdpGrowth > 5) mood = moodNarratives['high_gdp'];
+  else if (state.libertyIndex > 55) mood = moodNarratives['high_liberty'];
+  else if (state.foodSecurity > 80) mood = moodNarratives['high_food'];
+  else if (state.cohesion > 70) mood = moodNarratives['high_cohesion_early'];
+
+  // Headline rotation
+  const phaseHeads = headlines[state.phase] ?? headlines['Trustee'];
+  const headIdx = state.turns % phaseHeads.length;
+
+  // Tier unlock
+  const tier = phaseOrder[state.phase] + 1;
+
+  return {
+    ...state,
+    pressureMeter: newPressure,
+    pressureWarningActive: newPressure >= 70,
+    publicMoodNarrative: mood,
+    headlineText: phaseHeads[headIdx],
+    unlockedActionTier: tier,
+  };
+};
+
+/* ═══ PROLOGUE ADVANCE ══════════════════════════════════ */
+const advancePrologue = (state: SimulationState): SimulationState => {
+  const nextStep = state.prologueStep + 1;
+  if (nextStep >= 3) {
+    return { ...state, prologueDone: true, prologueStep: 3 };
+  }
+  return { ...state, prologueStep: nextStep };
+};
+
 /* ═══ REDUCER ══════════════════════════════════════════ */
 
 export const simulationReducer = (
@@ -1789,6 +1978,14 @@ export const simulationReducer = (
     case 'adopt-innovation':
       next = applyInnovation(state, action.innovationId);
       break;
+    case 'temptation-choice':
+      next = applyTemptationChoice(state, action.temptationId, action.accept);
+      break;
+    case 'dismiss-temptation':
+      next = { ...state, currentTemptation: null };
+      return checkAchievements(next);
+    case 'advance-prologue':
+      return advancePrologue(state);
     default:
       return state;
   }

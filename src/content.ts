@@ -337,3 +337,242 @@ export const innovationTemplates: InnovationTemplate[] = [
 ];
 
 export const seasonNames = ['Spring', 'Summer', 'Autumn', 'Winter'] as const;
+
+/* ═══ PROLOGUE CARDS ════════════════════════════════════ */
+
+export interface PrologueCard {
+  id: string;
+  title: string;
+  body: string;
+  icon: string;
+  stat: string;
+}
+
+export const prologueCards: PrologueCard[] = [
+  {
+    id: 'prologue-1',
+    title: 'Madrid, March 2026',
+    icon: '🏛️',
+    body: 'Spain\'s sovereign debt hit €1.65 trillion at dawn. By noon, Fitch had cut the rating to junk. The Prime Minister resigned live on television — mid-sentence. By evening, Brussels had appointed you.\n\nYour title: Liquidation Trustee. Your mandate: convert a bankrupt state into something its 47 million citizens can survive.',
+    stat: 'Debt: €1.65T · Rating: Junk · Government: Dissolved',
+  },
+  {
+    id: 'prologue-2',
+    title: 'The Inheritance',
+    icon: '📋',
+    body: 'You inherit 2.7 million public employees, 9.5 million pensioners with unfunded promises, 32,800 pages of regulation, six ministries that have never once audited themselves, and 281 tonnes of gold in a vault under Madrid.\n\nAlso: €42 billion in an annuity pool, the goodwill of a population that hasn\'t panicked yet, and a window that closes in roughly ten turns.',
+    stat: 'Gold: 281t · Employees: 2.7M · Pensioners: 9.5M',
+  },
+  {
+    id: 'prologue-3',
+    title: 'The Rules',
+    icon: '⚖️',
+    body: 'You will be offered shortcuts. The EU will offer bailouts with strings. Generals will offer stability with strings. The IMF will offer liquidity with strings. Populists will offer hope with strings.\n\nEvery string leads to the same place: a state that cannot die because someone keeps resuscitating it.\n\nYour job is to let it die — carefully, humanely, and faster than the bond market loses patience.',
+    stat: 'Interventionist Temptations will appear. Resist them — or don\'t.',
+  },
+];
+
+/* ═══ TEMPTATION CARDS ══════════════════════════════════ */
+
+
+export const temptationDeck = [
+  // Phase: Trustee
+  {
+    id: 'tempt-eu-bridge',
+    title: 'EU Emergency Bridge Loan',
+    source: 'European Commission',
+    sourceIcon: '🇪🇺',
+    flavour: 'Von der Leyen is on the phone. "We can wire €80 billion by Friday. Conditionality is minimal — just pause the privatisations for 90 days."',
+    offer: '+€80B annuity pool, −20 EU threat, +8 cohesion',
+    poison: 'Privatisation freeze for 3 turns. +15 interventionCount. Liberty index locked.',
+    acceptLabel: 'Accept the bridge loan',
+    refuseLabel: 'Decline — we go it alone',
+    minPhase: 'Trustee',
+  },
+  {
+    id: 'tempt-price-controls',
+    title: 'Emergency Price Controls',
+    source: 'Deputy PM (Caretaker)',
+    sourceIcon: '🤵',
+    flavour: 'The caretaker government is nervous. "Inflation is at 9%. One decree — price caps on food and fuel — and the protests stop. Nobody needs to know it came from us."',
+    offer: '+12 cohesion, −4 inflation short-term, +public mood',
+    poison: 'Food security −15 next 2 turns. Black market +25. GDP growth −1.2.',
+    acceptLabel: 'Issue the price caps',
+    refuseLabel: 'Refuse — let markets clear',
+    minPhase: 'Trustee',
+    requiredStat: { key: 'inflation', above: 7 },
+  },
+  {
+    id: 'tempt-imf-conditionality',
+    title: 'IMF Standby Arrangement',
+    source: 'IMF Managing Director',
+    sourceIcon: '🏦',
+    flavour: '"Fifty billion in Special Drawing Rights, immediate access. The conditionality clause just requires you to maintain the tax rate above 20% and preserve the pension ministry structure."',
+    offer: '+€50B pool, −10 EU threat, +10 international reputation',
+    poison: 'Tax rate locked ≥20% for 4 turns. Pension ministry cannot be closed.',
+    acceptLabel: 'Sign the standby arrangement',
+    refuseLabel: 'Walk away from the table',
+    minPhase: 'Trustee',
+  },
+  // Phase: Liquidator
+  {
+    id: 'tempt-renationalise',
+    title: 'Re-nationalise the Grid',
+    source: 'Unión General de Trabajadores (UGT)',
+    sourceIcon: '✊',
+    flavour: '"Workers are scared. Re-nationalise the energy grid for one year — call it a transition measure. It saves 40,000 jobs and the unions will stop blocking the rest of your programme."',
+    offer: '+10 cohesion, +8 energy stability, +military loyalty +5',
+    poison: 'Liberty index −12. Asset multiplier −0.08. EU threat +10.',
+    acceptLabel: 'Accept the re-nationalisation',
+    refuseLabel: 'Hold the line on privatisation',
+    minPhase: 'Liquidator',
+    requiredStat: { key: 'energyStability', below: 45 },
+  },
+  {
+    id: 'tempt-wealth-tax',
+    title: 'Emergency Wealth Levy',
+    source: 'Podemos (Rump faction)',
+    sourceIcon: '💰',
+    flavour: '"Two percent on assets above €5M — collected once, right now. We\'re talking €35 billion. You get your runway. We get to say markets were regulated."',
+    offer: '+€35B annuity pool, +6 cohesion, −EU threat 5',
+    poison: 'Capital flight +30, international reputation −15, asset multiplier −0.06, liberty index −8.',
+    acceptLabel: 'Levy the wealth tax',
+    refuseLabel: 'Refuse capital confiscation',
+    minPhase: 'Liquidator',
+    requiredStat: { key: 'annuityPool', below: 30_000_000_000 },
+  },
+  {
+    id: 'tempt-media-blackout',
+    title: 'Temporary Press Restrictions',
+    source: 'Interior Ministry (Dissolved)',
+    sourceIcon: '📰',
+    flavour: 'A ghost of the old Interior Ministry surfaces. "Six news channels are running coordinated panic narratives. One decree — 30-day emergency broadcast rules — and we control the story."',
+    offer: '+8 cohesion, EU threat −6, −emigration rate 1.5',
+    poison: 'International reputation −20, liberty index −10, corruption +8. EU threat surges after 2 turns.',
+    acceptLabel: 'Restrict the press',
+    refuseLabel: 'Defend free speech',
+    minPhase: 'Liquidator',
+    requiredStat: { key: 'cohesion', below: 45 },
+  },
+  // Phase: Architect
+  {
+    id: 'tempt-army-order',
+    title: 'Military Administration Order',
+    source: 'General Varela, Army Chief',
+    sourceIcon: '🎖️',
+    flavour: '"Six provinces are ungoverned. I can restore order in 48 hours — interim military administration, just for the transition. No politics. Just order."',
+    offer: '+15 public safety, +10 cohesion, −black market 20',
+    poison: 'Military loyalty becomes military power. Liberty index −20. International reputation −15. Coup risk doubles.',
+    acceptLabel: 'Grant military authority',
+    refuseLabel: 'Keep the military in barracks',
+    minPhase: 'Architect',
+    requiredStat: { key: 'publicSafety', below: 35 },
+  },
+  {
+    id: 'tempt-sovereign-fund',
+    title: 'State Sovereign Wealth Fund',
+    source: 'Goldman Sachs / BlackRock Consortium',
+    sourceIcon: '🏦',
+    flavour: '"Create a €200B sovereign wealth fund — we manage it. Returns fund the pensions, interest pays the debt. You hand over asset control for 15 years. Pensions are safe overnight."',
+    offer: '+pension coverage 40%, +€80B pool, EU threat −10',
+    poison: 'Assets locked for 4 turns. Liberty index −8. Asset control partially surrendered.',
+    acceptLabel: 'Create the wealth fund',
+    refuseLabel: 'Keep assets in trust hands',
+    minPhase: 'Architect',
+  },
+  {
+    id: 'tempt-bitcoin-mandate',
+    title: 'Mandatory Crypto Reserve',
+    source: '"Satoshi" Serrano (if present)',
+    sourceIcon: '🧑‍💻',
+    flavour: '"Make bitcoin legal tender by decree. Force businesses to hold 5% reserves in BTC. Instant inflation hedge, instant international attention, instant capital inflow."',
+    offer: '+private currency adoption 30%, inflation −6, reputation +10',
+    poison: 'EU threat +18, cohesion −8, market volatility spike.',
+    acceptLabel: 'Issue the bitcoin mandate',
+    refuseLabel: 'Keep currency voluntary',
+    minPhase: 'Architect',
+    requiredStat: { key: 'privateCurrencyAdoption', below: 30 },
+  },
+];
+
+/* ═══ PHASE-GATED ACTIONS ══════════════════════════════ */
+
+export interface UnlockableAction {
+  id: string;
+  tier: number;      // 1-4
+  phase: 'Trustee' | 'Liquidator' | 'Architect' | 'Sovereign';
+  icon: string;
+  cardTier: 'common' | 'rare' | 'epic' | 'legendary';
+  title: string;
+  desc: string;
+  cost: string;
+  command?: string;
+  actionType?: string;
+  unlockNote?: string;
+}
+
+export const unlockableActions: UnlockableAction[] = [
+  // Tier 1 — Trustee (always available)
+  { id: 'swap-debt',   tier:1, phase:'Trustee',   icon:'💱', cardTier:'rare',    title:'Equity Swap',        desc:'Convert sovereign debt into trust shares. The single most important first move.',              cost:'−9 cohesion, +EU threat', command:'/swap-debt' },
+  { id: 'gold-bond',   tier:1, phase:'Trustee',   icon:'🪙', cardTier:'epic',    title:'Gold Bond Ladder',   desc:'Ring-fence gold reserves against pension liabilities. Calms the retiree bloc.',                cost:'+pension, +EU threat',    actionType:'issue-gold-bond' },
+  { id: 'status',      tier:1, phase:'Trustee',   icon:'📊', cardTier:'common',  title:'Status Pulse',       desc:'Refresh the dashboard. Free action. Always useful.',                                         cost:'free',                    command:'/status' },
+  { id: 'liquidate',   tier:1, phase:'Trustee',   icon:'🏪', cardTier:'common',  title:'Auction Asset',      desc:'Sell a stake in AENA. Routes proceeds directly to the annuity pool.',                       cost:'+annuity',                command:'/liquidate aena 10' },
+  // Tier 2 — Liquidator
+  { id: 'veto-lock',   tier:2, phase:'Liquidator',icon:'🛡️', cardTier:'epic',   title:'Veto Lock',          desc:'Diplomatic shield. Buy time against Brussels escalation.',                                    cost:'−16 EU threat',           command:'/veto-lock', unlockNote:'Unlocked: Liquidator phase' },
+  { id: 'privatize',   tier:2, phase:'Liquidator',icon:'🤝', cardTier:'common',  title:'Privatise Ministry', desc:'Move payroll into worker cooperatives. Short-term unemployment spike, long-term freedom.',  cost:'+unemp short-term',       command:'/privatize Transport Ministry', unlockNote:'Unlocked: Liquidator phase' },
+  { id: 'deregulate',  tier:2, phase:'Liquidator',icon:'✂️', cardTier:'rare',    title:'Deregulate Energy',  desc:'Burn compliance friction. Lifts GDP and asset multipliers.',                                  cost:'+growth',                 command:'/deregulate Energy', unlockNote:'Unlocked: Liquidator phase' },
+  { id: 'deregulate-agri', tier:2, phase:'Liquidator',icon:'🌱', cardTier:'rare', title:'Deregulate Agri',  desc:'Free the farms. Boosts food security and rural employment.',                                cost:'+food',                   command:'/deregulate Agriculture', unlockNote:'Unlocked: Liquidator phase' },
+  // Tier 3 — Architect
+  { id: 'arbitrate',   tier:3, phase:'Architect', icon:'⚖️', cardTier:'rare',    title:'Arbitration Mesh',   desc:'Expand private court coverage. Reduces corruption and black market.',                         cost:'+10 arb coverage',        actionType:'expand-arbitration', unlockNote:'Unlocked: Architect phase' },
+  { id: 'charter',     tier:3, phase:'Architect', icon:'🗺️', cardTier:'epic',    title:'Charter City',       desc:'Launch an opt-in governance zone. Attracts investment and talent.',                          cost:'+liberty, +EU threat',    command:'/charter-city Valencia', unlockNote:'Unlocked: Architect phase' },
+  { id: 'fdi',         tier:3, phase:'Architect', icon:'🌐', cardTier:'epic',    title:'FDI Fast Track',     desc:'Open a foreign investment corridor with guaranteed arbitration.',                            cost:'+reputation',             command:'/deregulate Finance', unlockNote:'Unlocked: Architect phase' },
+  // Tier 4 — Sovereign
+  { id: 'zero-tax',    tier:4, phase:'Sovereign', icon:'🪓', cardTier:'legendary',title:'Zero Tax Decree',   desc:'Abolish all remaining taxation. The final act of the fiscal state.',                         cost:'−tax rate, +EU crisis',   command:'/deregulate Tax', unlockNote:'Unlocked: Sovereign phase' },
+  { id: 'dissolve',    tier:4, phase:'Sovereign', icon:'👑', cardTier:'legendary',title:'Dissolve the State', desc:'Issue the final dissolution decree. Voluntary order only from here.',                       cost:'Full commitment required',command:'/status', unlockNote:'Unlocked: Sovereign phase' },
+];
+
+/* ═══ HEADLINES ════════════════════════════════════════ */
+export const headlines: Record<string, string[]> = {
+  Trustee: [
+    '"SPAIN IN FREEFALL: Liquidation Trustee Named Amid Market Chaos" — Reuters',
+    '"Is Spain the First to Try Anarcho-Capitalism? Experts Unsure" — FT',
+    '"The Debt Is Gone But the Math Remains" — El País',
+    '"Brussels Warns: This Is Unconventional" — Euronews',
+    '"Gold Vault Opened: What Does It Mean?" — Bloomberg',
+  ],
+  Liquidator: [
+    '"Three Ministries Closed: Unions Call Strike, Markets Cheer" — El Mundo',
+    '"AENA Stake Sold: Foreign Investors Queue" — WSJ',
+    '"Spain\'s Tax Rate Falls Below France\'s For First Time Since 1978" — Le Monde',
+    '"Cooperatives Rise From Bureaucratic Ashes" — Guardian',
+    '"Brussels Sends Third Warning Letter" — Politico',
+  ],
+  Architect: [
+    '"Charter City Barcelona: 40,000 Firms Applied in Week One" — Bloomberg',
+    '"Private Arbitration Courts Handle 60% of Commercial Disputes" — FT',
+    '"Is This Working? GDP Rises As Government Shrinks" — Economist',
+    '"The Hayek Experiment: Year Two" — New Yorker',
+    '"NATO Nervous As Spain Privatises Defence Contracts" — BBC',
+  ],
+  Sovereign: [
+    '"SPAIN DOES IT: Zero Tax, Zero Debt, Zero State" — Breaking',
+    '"The Market Order Holds — For Now" — Reuters',
+    '"Spain Becomes The World\'s Freest Economy" — Heritage Foundation',
+    '"What Brussels Got Wrong About Spain" — FT Editorial',
+    '"Rothbard Would Have Approved" — Mises Institute',
+  ],
+};
+
+/* ═══ PUBLIC MOOD NARRATIVES ════════════════════════════ */
+export const moodNarratives: Record<string, string> = {
+  high_cohesion_early:   'Citizens are cautiously hopeful. The trust framework is strange but the pension promises feel real.',
+  low_cohesion_early:    'Anger is building. Queues at employment offices. The transition\'s legitimacy is being tested in the streets.',
+  high_food:             'Markets are stocked. Mutual aid networks fill gaps. People are eating.',
+  low_food:              'Food queues are forming. The agricultural deregulation hasn\'t taken hold yet. Time is short.',
+  high_liberty:          'The private sector is booming. Entrepreneurs are calling Spain "the new Hong Kong of Europe."',
+  low_safety:            'Crime is rising in ungoverned zones. The voluntary security model is not yet mature enough.',
+  high_gdp:              'The economy is growing faster than any forecast. Tax revenue is collapsing — but so is expenditure.',
+  inflation_bad:         'Prices are rising faster than wages. The black market is expanding. People are losing faith in the currency.',
+  temptation_accepted:   'Some celebrate the pragmatic move. Purists within the transition warn of precedent-setting compromises.',
+  great:                 'The transition is ahead of schedule. Agents are arriving. Innovations are spreading. This might actually work.',
+};
